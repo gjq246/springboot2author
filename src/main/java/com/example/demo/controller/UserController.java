@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +42,9 @@ public class UserController {
 	// 未加入@ResponseBody用来返回数据给页面
 	@RequestMapping("view")
 	public String view(Model model) {
+//		String str="个人";
+//		model用来回传数据给前端页面
+//		setTitle(model, new TitleVo("列表", str+"管理", true,"欢迎进入"+str+"页面", true, false));
 		return prefix + "/view";
 	}
 
@@ -157,6 +159,54 @@ public class UserController {
 			j.setObj("上传失败");
 		}
 		return j;
+	}
+
+	/**
+	 * 登录验证
+	 * @param request
+	 * @param user
+	 * @return
+	 */
+	// @ResponseBody，直接通过js异步返回数据给页面
+	@RequestMapping("login")
+	@ResponseBody
+	public Json login(HttpServletRequest request, User user) {
+		Json j = new Json();
+		HttpSession session = request.getSession();
+		String code = (String) session.getAttribute(Constants.KAPTCHA_SESSION_KEY);
+		String kaptcha = request.getParameter("kaptcha");
+		if (kaptcha.equals(code)) {
+			// 验证码正确
+			User loginUser = userService.selectByUser(user);
+			if (loginUser != null) {
+				j.setSuccess(true);
+				loginUser.setPassword("");// 密码不回传
+				j.setObj(loginUser);
+				j.setMsg("登录成功！");
+				session.setAttribute("user", loginUser);// 保存session会话
+			} else {
+				j.setSuccess(false);
+				j.setMsg("登录失败！");
+			}
+		} else {
+			j.setSuccess(false);
+			j.setMsg("验证码错误！");
+		}
+		return j;
+	}
+
+	/**
+	 * 注销
+	 * @param request
+	 * @param model
+	 * @return
+	 */
+	// 未加入@ResponseBody用来返回数据给页面
+	@RequestMapping("logout")
+	public String logout(HttpServletRequest request,Model model) {
+		HttpSession session = request.getSession();
+		session.removeAttribute("user");
+		return "admin/login";
 	}
 
 }
